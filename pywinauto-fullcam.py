@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import csv
+import time
 
 # pywinauto-fullcam.py
 # 20160107-001
@@ -25,19 +26,19 @@ import csv
 
 # Application to launch - you can see I didn't test to see if the double-\s were really required...
 
-fullCamPath = r"C:\Program Files (x86)\FullCAM Public Release 2015\FullCam.exe"
+fullCamPath = r"C:\Program Files (x86)\FullCAM Public Release 2016\FullCam.exe"
 
 # Where the *.plo files are stored
 
-plotFilePath = "Z:\\Desktop\\fullcam-data\\"
+plotFilePath = ".\\"
 
 # A list of plot file names
 
-plotFileList = ["High Reafforestation", "Med Reafforestation", "Low Reafforestation"]
+plotFileList = ["baseline_nitens_16yrs"]
 
-destinationDir = "Z:\\Desktop\\dest-dir\\"
+destinationDir = "Y:\\Desktop\\dest-dir\\"
 
-inputCsv = plotFilePath + "TESTchris20151228.csv"
+inputCsv = plotFilePath + "BaselineNitens_16.csv"
 
 # !!! Probably not a good idea to change anything after this line !!!
 #
@@ -66,7 +67,7 @@ app.AboutFullCAM.WaitNot('visible')
     
 
 for fname in plotFileList:    
-    with open(inputCsv, 'rb') as csvfile:
+    with open(inputCsv, 'r') as csvfile:
         taskReader = csv.DictReader(csvfile)
         mainWin = app.FullCAM
     
@@ -85,8 +86,10 @@ for fname in plotFileList:
     
         for row in taskReader:
             print(row['ID'], row['Latitude'], row['Longitude'], row['Property'])
-    
-            plotWin = app[fname + '.plo']
+            time.sleep(2)
+            #plotWin = app[fname + '.plo']
+            plotWin = app.top_window()
+            plotWin.print_control_identifiers()
             plotWin.SetFocus()
             plotWin.Wait("exists enabled visible ready")
             
@@ -97,12 +100,15 @@ for fname in plotFileList:
     
             plotWin.Edit2.SetEditText(row['Longitude'])
             plotWin.Edit3.Click()
-    
+
+   
             plotWin.Wait("exists enabled visible ready")
                         
             # Press the download data button
             
             plotWin["Download Spatial Data"].ClickInput()
+            #plotWin.print_control_identifiers()
+            #plotWin["Download"].ClickInput()
             app.Info.Wait("exists enabled visible ready", timeout=60)
             
             # Click ok - thanks for downloading, but you need me to OK every time?
@@ -114,22 +120,28 @@ for fname in plotFileList:
             
             mainWin.TypeKeys('{F9}')
             
-            simWindow = app[fname + ".plo - Output 1"]
+            time.sleep(1)
+            #simWindow = app[fname + ".*Output 1"]
+            simWindow = app.top_window()
             simWindow.Wait("exists enabled visible ready")
             
             # It took forever to narrow down the coordinates of the save dialog and teh keyboard shortcut 
             # wasn't wired up by the application developers so I couldn't shortcut with ^s
     
-            #            simWindow.TToolBar.ClickInput(coords=(675,5))
-            simWindow.TToolBar.ClickInput(coords=(320,5))
+            print(simWindow.TToolBar.rectangle)
+            simWindow.TToolBar.ClickInput(coords=(240,12))
+            #simWindow.TToolBar.ClickInput(coords=(320,5))
+            #simWindow.TToolBar.ClickInput(coords=(330,5))
+            #simWindow.TToolBar["Save To File.*"].ClickInput()
             
             # wait for the dsave dialog to appear
             
             app.SaveSimulationResults.Wait("exists enabled visible ready")
+            time.sleep(1)
             
             # Save to the destination dir with a filename of <ID> - <plo name>.xls
             
-            app.SaveSimulationResults.TypeKeys(destinationDir + row['ID'] + " - " + fname + ".xls", with_spaces=True)
+            app.SaveSimulationResults.TypeKeys(destinationDir + row['ID'] + " - " + fname + ".csv", with_spaces=True)
             
             app.SaveSimulationResults.Save.ClickInput()
             app.SaveSimulationResults.WaitNot('visible')
